@@ -1,48 +1,42 @@
-import React, { Component } from 'react';
+import React from 'react';
+import { useState } from 'react';
 import { nanoid } from 'nanoid';
 import { Box } from './Box';
 import ContactList from './ContactList';
 import ContactForm from './ContactForm';
 import Filter from './Filter';
+import useLocalStorage from 'hooks/UseLocalStorage';
 
-class App extends Component {
-  state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
-  };
+const App = () => {
+  const [contacts, setContacts] = useLocalStorage('contacts', [
+    { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
+    { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
+    { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
+    { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
+  ]);
 
-  handleContactSubmit = ({ name, number }) => {
+  const [filter, setFilter] = useState('');
+
+  const handleContactSubmit = ({ contact: { name, number } }) => {
     const newContact = {
       id: nanoid(),
       name,
       number,
     };
-
-    this.setState(({ contacts }) => {
-      return { contacts: [...contacts, newContact] };
-    });
+    setContacts(contacts => [...contacts, newContact]);
   };
 
-  filterContacts = () => {
-    const { contacts, filter } = this.state;
+  const filteredContacts = () => {
+    const normalizedFilter = filter.toLowerCase();
 
-    const normalizedFilter = filter.toLocaleLowerCase();
     return contacts.filter(({ name }) =>
-      name.toLocaleLowerCase().includes(normalizedFilter)
+      name.toLowerCase().includes(normalizedFilter)
     );
   };
 
-  handleFilter = e => {
-    this.setState({ filter: e.target.value.toLowerCase() });
-  };
+  const handleFilter = e => setFilter(e.currentTarget.value.toLowerCase());
 
-  checkDuplicates = name => {
-    const { contacts } = this.state;
+  const checkDuplicates = name => {
     const allContactNames = contacts.map(contact => contact.name);
 
     if (allContactNames.includes(name)) {
@@ -51,55 +45,33 @@ class App extends Component {
     }
   };
 
-  deleteContact = id => {
-    this.setState(({ contacts }) => {
-      return { contacts: contacts.filter(contact => contact.id !== id) };
-    });
+  const deleteContact = id => {
+    setContacts(contacts => contacts.filter(contact => contact.id !== id));
   };
 
-  componentDidMount() {
-    const contacts = localStorage.getItem('contacts');
-    const parsedContacts = JSON.parse(contacts);
-
-    if (parsedContacts) {
-      this.setState({ contacts: parsedContacts });
-    }
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.contacts !== prevState.contacts) {
-      localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
-    }
-  }
-
-  render() {
-    return (
-      <Box display="flex" flexDirection="column" alignItems="center" p={5}>
-        <h1>Phonebook</h1>
-        <Box
-          width="300px"
-          textAlign="center"
-          border="normal"
-          borderColor="accent"
-          borderRadius="normal"
-          p={4}
-        >
-          <ContactForm
-            onSubmit={this.handleContactSubmit}
-            checkDuplicates={this.checkDuplicates}
-          />
-        </Box>
-        <Box width="300px">
-          <h2>Contacts</h2>
-          <Filter onChange={this.handleFilter} />
-          <ContactList
-            values={this.filterContacts()}
-            handleDelete={this.deleteContact}
-          />
-        </Box>
+  return (
+    <Box display="flex" flexDirection="column" alignItems="center" p={5}>
+      <h1>Phonebook</h1>
+      <Box
+        width="300px"
+        textAlign="center"
+        border="normal"
+        borderColor="accent"
+        borderRadius="normal"
+        p={4}
+      >
+        <ContactForm
+          onSubmit={handleContactSubmit}
+          checkDuplicates={checkDuplicates}
+        />
       </Box>
-    );
-  }
-}
+      <Box width="300px">
+        <h2>Contacts</h2>
+        <Filter value={filter} onChange={handleFilter} />
+        <ContactList values={filteredContacts()} handleDelete={deleteContact} />
+      </Box>
+    </Box>
+  );
+};
 
 export default App;
